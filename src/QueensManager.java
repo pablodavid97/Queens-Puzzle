@@ -2,12 +2,14 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class QueensManager {
+    // constantes del problema
     public static int MAX_QUEENS = 8;
     public static int MAX_POPULATION = 30;
-    public static int MAX_GENERATIONS = 20000;
+    public static int MAX_GENERATIONS = 200000;
     public static int SOLUTION_VAL = 28;
     public static double PROB_MUTATION = 0.01;
 
+    // arreglo de strings que contiene poblacion
     public static ArrayList<String> population = new ArrayList<>();
     public static int totalfitness = 0;
 
@@ -21,19 +23,13 @@ public class QueensManager {
 
         for(int i = 0; i < MAX_POPULATION; i++){
             String s = shuffling(state, MAX_QUEENS);
-            System.out.println(s);
             population.add(s);
-            System.out.println("Fitness Value");
-            System.out.println(fitnessFunction(s));
             totalfitness += fitnessFunction(s);
         }
     }
 
     public static String shuffling(String state, int n) {
         int[] a = new int[n];
-//
-//        System.out.println("State");
-//        System.out.println(state);
 
         int[] ind = new int[n];
         for (int i = 0; i < n; i++) {
@@ -49,8 +45,6 @@ public class QueensManager {
 
             ind[index] = 1;
             a[i] = Character.getNumericValue(state.charAt(index));
-//            System.out.println("Char at");
-//            System.out.println(a[i]);
         }
 
         String stateFinal = "";
@@ -65,19 +59,38 @@ public class QueensManager {
     public static String geneticAlgorithm(){
 
         int indx = 0;
-        String individual = "";
+        String individual = "11111111";
+        int n = population.size();
 
-        while(indx < MAX_GENERATIONS || fitnessFunction(individual) == SOLUTION_VAL){
+        while(indx < MAX_GENERATIONS && fitnessFunction(individual) != SOLUTION_VAL){
             ArrayList<String> newPopulation = new ArrayList<>();
-            int x = rouletteWheelSelection();
-            int y = rouletteWheelSelection();
-            String child = reproduce(x, y);
-            if(PROB_MUTATION < 0.5) {
-                child = mutate(child);
+
+            for(int i = 0; i < n; i++){
+                int x = rouletteWheelSelection();
+                int y = rouletteWheelSelection();
+                String child = reproduce(x, y);
+//            System.out.println("Child: " + child);
+
+                if(PROB_MUTATION < 0.5) {
+                    child = mutate(child);
+                }
+//            System.out.println("Mutated Child: " + child);
+
+                newPopulation.add(child);
+
+                if(fitnessFunction(child) == SOLUTION_VAL){
+                    System.out.println("Solution found!");
+
+                    individual = child;
+                }
             }
-            newPopulation.add(child);
+
+            population = newPopulation;
             indx++;
-            individual = child;
+
+//            System.out.println("Individual Candiadte");
+//            System.out.println(individual);
+//            System.out.println("Fitness: " + fitnessFunction(individual));
         }
 
         return individual;
@@ -86,6 +99,9 @@ public class QueensManager {
     public static String reproduce(int x, int y) {
         String parent1 = population.get(x);
         String parent2 = population.get(y);
+
+//        System.out.println("Parent1: " + parent1);
+//        System.out.println("Parent2: " + parent2);
         Random random = new Random();
 
         int n = parent1.length();
@@ -118,8 +134,9 @@ public class QueensManager {
 //        System.out.println(row_col_clashes);
 //        System.out.println("distinct");
 //        System.out.println(s.chars().distinct().count());
-
         clashes += row_col_clashes;
+
+        ArrayList<String> savedDiagonals = new ArrayList<>();
 
         for(int i = 0; i < n; i++){
             for(int j = 0; j < n; j++){
@@ -135,13 +152,33 @@ public class QueensManager {
 //                        System.out.println("second" + secondVal);
 //                        System.out.println("dx" + dx);
 //                        System.out.println("dy" + dy);
-                        clashes += 1;
+
+                        if(!containsDiagonalPair(firstVal, secondVal, savedDiagonals)){
+                            savedDiagonals.add(firstVal + "-" + secondVal);
+                            clashes += 1;
+                        }
                     }
                 }
             }
         }
 
         return SOLUTION_VAL - clashes;
+    }
+
+    public static boolean containsDiagonalPair(int firstVal, int secondVal, ArrayList<String> diagonals){
+        int n = diagonals.size();
+
+        for(int i = 0; i < n; i++){
+            String[] pairs = diagonals.get(i).split("-");
+            int first = Integer.parseInt(pairs[0]);
+            int second = Integer.parseInt(pairs[1]);
+
+            if((first == firstVal && second == secondVal) || (second == firstVal && first == secondVal)){
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static int rouletteWheelSelection(){
@@ -157,22 +194,31 @@ public class QueensManager {
                 return i;
             }
         }
-
         return 0;
     }
 
     public static double individualProbability(ArrayList<String> population, int indx){
-        return fitnessFunction(population.get(indx)) / totalfitness;
+//        System.out.println("totalfitness: " + totalfitness);
+        return (double)fitnessFunction(population.get(indx)) / totalfitness;
     }
 
     public static void main(String[] args) {
+        // Casos de prueba para evaluar fitness function
+        System.out.println("Sample fitness function scores");
+        System.out.println(fitnessFunction("51842736"));
+        System.out.println(fitnessFunction("24748552"));
+        System.out.println(fitnessFunction("32752411"));
+        System.out.println(fitnessFunction("24415124"));
+        System.out.println(fitnessFunction("32543213"));
+
+        System.out.println("Generating population...");
         initialPopulation();
         System.out.println("Initial Population");
         System.out.println(population);
+        System.out.println();
 
-//        System.out.println("FitnessValue");
-//        System.out.println(fitnessFunction(population.get(0)));
-
+        System.out.println("****************************");
+        System.out.println("Sorting...");
         System.out.println("Sorted population based on fitness");
         population.sort((String s1, String s2) -> {
            if(fitnessFunction(s1) > fitnessFunction(s2)) {
@@ -184,8 +230,13 @@ public class QueensManager {
            }
         });
         System.out.println(population);
+        System.out.println();
 
-        System.out.println("Individual Solution");
-        System.out.println(geneticAlgorithm());
+        System.out.println("*****************************");
+        System.out.println("Implementing Algorithm and Finding Solution...");
+        String solution = geneticAlgorithm();
+        System.out.println("Individual Solution: " + solution);
+        System.out.println("Fitness Function: " + fitnessFunction(solution));
+        System.out.println();
     }
 }
